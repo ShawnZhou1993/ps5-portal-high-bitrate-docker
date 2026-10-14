@@ -1,0 +1,10 @@
+# 强制所有文本文件 LF 行尾
+# （曾经有人从 Windows 上传的部署包带 CRLF，让 Alpine 容器里的 ash 执行
+# "set -eu\r" 时报 "illegal option -"。这文件让 git 在签出时就规整成 LF。）
+* text=auto eol=lf
+
+# 二进制不动
+*.png binary
+*.jpg binary
+*.pdf binary
+*.zip binary

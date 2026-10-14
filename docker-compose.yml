@@ -1,0 +1,50 @@
+# PS5 Portal 高码率中继 — Docker Compose 部署
+# 完整中文说明见 README.md 与 docs/ 目录。使用前先执行：
+#   cp .env.example .env   # 然后按你的网络修改 .env
+#
+#   docker compose build
+#   docker compose run --rm relay configure-env   # 非交互注册（读取 .env 里的 PS5_IP/PORTAL_IP）
+#   docker compose run --rm relay baseline        # 60 秒透传测试：看到 BASELINE READY 后连接 Portal
+#   docker compose run --rm relay try             # 前台试验：看到 AUTO READY 后连接 Portal，Ctrl+C 停止
+#   docker compose up -d                          # 常驻模式：之后每次玩直接连接 Portal 即可
+#
+# 原理要求：中继必须与 PS5/Portal 处于同一二层局域网、并拥有自己的 MAC 地址，
+# 因此使用 macvlan 网络（容器获得局域网内的独立 IP）。Docker 默认 bridge/NAT 无法工作。
+name: portal-relay
+
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: portal-relay:local
+    init: true                 # 回收僵尸进程；'portal service' 会向中继进程转发信号
+    restart: unless-stopped
+    stop_grace_period: 60s     # 留给守护进程修复 Portal 的 ARP 表（约 3 秒）
+    cap_add: [NET_RAW]         # 原始以太网帧收发（Docker 默认已授予，Podman 需显式添加）
+    sysctls:
+      net.ipv4.ip_forward: "0" # 仅作用于本容器网络命名空间；中继在系统转发开启时拒绝运行
+    tmpfs:
+      - /run                   # 锁文件目录；每次容器启动自动清空
+    volumes:
+      - ./data/config:/etc/portal-bitrate        # 注册信息（auto-config.json）
+      - ./data/runtime:/var/lib/portal-bitrate-auto  # 运行状态/基线回执/日志
+    environment:
+      # 供 configure-env 非交互注册使用；up -d 常驻时不使用
+      - PS5_IP=${PS5_IP:-}
+      - PORTAL_IP=${PORTAL_IP:-}
+      - PROFILE=${PROFILE:-65}
+      - IFACE=${IFACE:-eth0}
+    networks:
+      lan:
+        ipv4_address: ${RELAY_IP:?请在 .env 中设置 RELAY_IP（中继容器的局域网 IP）}
+
+networks:
+  lan:
+    driver: macvlan
+    driver_opts:
+      parent: ${LAN_PARENT:?请在 .env 中设置 LAN_PARENT（主机上的父网卡）}
+    ipam:
+      config:
+        - subnet: ${LAN_SUBNET:?请在 .env 中设置 LAN_SUBNET}
+          gateway: ${LAN_GATEWAY:?请在 .env 中设置 LAN_GATEWAY}

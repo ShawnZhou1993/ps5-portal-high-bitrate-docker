@@ -1,0 +1,14 @@
+# 构建上下文裁剪：只保留镜像需要的内容
+.git
+.gitignore
+repo/
+data/
+docs/
+scripts/
+*.zip
+.env
+.env.*
+!.env.example
+.venv-test/
+**/__pycache__/
+*.pyc

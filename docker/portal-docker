@@ -1,0 +1,16 @@
+#!/bin/sh
+# portal-docker — 容器入口包装：
+#   configure-env        非交互注册（读取 PS5_IP/PORTAL_IP/PROFILE/IFACE 环境变量）
+#   其他所有子命令      原样透传给上游助手 /usr/local/bin/portal
+set -eu
+
+APP=${PORTAL_APP:-/opt/portal-bitrate-auto}
+
+case "${1:-}" in
+	configure-env)
+		shift
+		exec "$APP/.venv/bin/python" "$APP/docker_configure.py" "$@"
+		;;
+esac
+
+exec /usr/local/bin/portal "$@"
