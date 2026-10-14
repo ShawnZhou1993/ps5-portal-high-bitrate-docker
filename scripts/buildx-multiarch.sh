@@ -7,8 +7,8 @@
 #   docker run --privileged --rm tonistiigi/binfmt --install all
 #
 # 用法：
-#   # 推到 ghcr.io（需先 docker login ghcr.io -u <user> -p <PAT>）
-#   REGISTRY=ghcr.io/<your-gh-user> TAG=v0.1.0 bash scripts/buildx-multiarch.sh
+#   # 推到 ghcr.io（需先 docker login ghcr.io -u ShawnZhou1993）
+#   REGISTRY=ghcr.io/ShawnZhou1993 TAG=v0.1.0 bash scripts/buildx-multiarch.sh
 #
 #   # 推到自建 registry（局域网，无需鉴权）
 #   REGISTRY=192.168.1.10:5000 TAG=latest bash scripts/buildx-multiarch.sh
@@ -18,7 +18,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-: "${REGISTRY:?请设置 REGISTRY（如 ghcr.io/<user> 或 192.168.1.10:5000）}"
+: "${REGISTRY:?请设置 REGISTRY（如 ghcr.io/ShawnZhou1993 或 192.168.1.10:5000）}"
 TAG=${TAG:-latest}
 IMAGE="$REGISTRY/ps5-portal-relay:$TAG"
 PIP_INDEX_URL=${PIP_INDEX_URL:-https://pypi.org/simple}
