@@ -14,7 +14,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # 包名与仓库名解耦：ghcr.io/<owner>/portal-relay（和本地构建标签 portal-relay:local 一致）
+  IMAGE_NAME: ${{ github.repository_owner }}/portal-relay
 
 permissions:
   contents: read

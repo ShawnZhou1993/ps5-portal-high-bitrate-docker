@@ -1,71 +1,90 @@
-# Push to GitHub: 操作步骤
+# 发布到 GitHub：新手操作步骤（ShawnZhou1993）
 
-**前置**：你已在 GitHub 创建空仓库 `ps5-portal-high-bitrate-docker`
-（不要勾选 Initialize with README/.gitignore/LICENSE，保持空仓库）。
+本地仓库已初始化好（2 个 commit，author 已设为 ShawnZhou1993），你只需要 4 步。
 
-## 方式 A（推荐）：直接 git push（保留 commit 历史）
+## 第 1 步：在 GitHub 创建空仓库
 
 1. 浏览器打开 https://github.com/new
-2. Repository name: `ps5-portal-high-bitrate-docker`
-3. **不要勾**任何初始化选项（README/.gitignore/LICENSE）
-4. 点 Create repository，然后回到本地终端：
+2. **Repository name** 填：`ps5-portal-high-bitrate-docker`
+3. **Public**（公开，别人才能看到和拉镜像）
+4. ⚠️ **不要勾选** "Add a README file" / "Add .gitignore" / "Choose a license" 中任何一项
+   （勾了会和本地仓库冲突，push 会被拒绝）
+5. 点 **Create repository**
+
+创建后页面会显示一个仓库地址，形如：
+`https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker.git`
+
+## 第 2 步：本地关联并推送
+
+打开 Git Bash（或本终端），执行：
 
 ```bash
 cd /d/PS5-Router/ps5-portal-relay-docker
-
-# ⚠️ 把这两行换成你自己的 GitHub 用户名（id 数字不知道可省略，用 GitHub 提供的 noreply）
-# 也可以直接保持现暂定身份推送，后续 git filter-branch 或 rebase 改
-# 简单做法：现在改本仓库身份（不影响全局）
-git config user.name "你的GitHub用户名"
-git config user.email "你的GitHub用户名@users.noreply.github.com"
-
-# 改完身份后修正最近一次 commit 的 author
-git commit --amend --reset-author --no-edit
-
-# 加 remote（把 YOUR-USER 换成你的 GitHub 用户名）
-git remote add origin https://github.com/YOUR-USER/ps5-portal-high-bitrate-docker.git
-
+git remote add origin https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker.git
 git push -u origin main
 ```
 
-推送后，**给上游送 PR**（可选但推荐）：
-1. 在你的仓库 Settings → 勾上 Issues
-2. 上游仓 https://github.com/atameric/ps5-portal-high-bitrate/issues/new 开个 issue，标题如
-   "Docker image (multi-arch) for headless NAS/router deployment"，正文贴你仓库链接 +
-   简短说明（macvlan + non-interactive configure-env + CI workflow）。
+**第一次 push 会弹出浏览器窗口要求登录 GitHub**（这是 Git 自带的凭据管理器 GCM）：
+- 点 "Sign in with your browser" → 浏览器里登录你的 GitHub 账号 → 授权
+- 授权后回到终端，推送自动继续，等到出现 `Branch 'main' set up to track...` 即成功
 
-## 方式 B：纯网页上传（不推荐，丢 commit 历史）
+> 如果弹窗没出现或报 `Authentication failed`，见文末「常见问题」。
 
-如果你只想快速在 GitHub 上有个仓库不在乎历史，可以：
-1. 在 GitHub 创建空仓库
-2. 下载本目录生成的 `ps5-portal-high-bitrate-docker-gh.zip`（不含 .git，34 文件 / 64KB）
-3. 解压到本地某处
-4. 在 GitHub 仓库页用 "uploading an existing file" 把所有文件拖进去
+## 第 3 步：开启 Actions 写权限（CI 推镜像用）
 
-不推荐——你将丢失 commit 历史和以后基于 git 的协作能力。
+1. 打开 https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker/settings/actions
+2. **Workflow permissions** 选 **Read and write permissions**
+3. 点 Save
 
-## CI 首次触发
+不做这步，第 4 步的 CI 会在最后推镜像时报 403 权限错误。
 
-push 完成后，actions 第一次会在 `main` 分支上跑（`type=ref,event=branch`）打出 `:main` 标签镜像。
-正式发版时：
+## 第 4 步：打标签发版（触发多架构镜像构建）
+
 ```bash
 git tag v0.1.0
 git push --tags
 ```
-这次会同时打 `:v0.1.0` `:0.1.0` `:0.1` `:0` `:latest` 五个标签，并触发多架构 build。
 
-## 推送后的额外配置
+然后打开 https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker/actions
+能看到 "Release multi-arch image" 工作流开始跑（amd64+arm64 约 5-10 分钟，QEMU 模拟 arm64 编译较慢是正常的）。
 
-- 仓库 Settings → Actions → General → Workflow permissions 选 **Read and write permissions**（CI 才能推到 ghcr.io）
-- 首次发布的镜像默认是 private，到 https://github.com/users/YOUR-USER/packages/container/ps5-portal-relay/settings 改成 Public（如果想让别人 docker pull）
+绿勾 ✅ 后镜像就在 `ghcr.io/shawnzhou1993/portal-relay:v0.1.0`（同时打 `:0.1.0` `:0.1` `:0` `:latest`）。
 
-## 关于 commit 作者身份
+**默认发布出来的镜像是 private**。想让别人也能 `docker pull`：
+1. 打开 https://github.com/users/ShawnZhou1993/packages/container/portal-relay/settings
+2. **Change visibility** → Public
+3. 按提示确认
 
-当前 commit 的身份是暂定的 `ps5-portal-relay contributor <contributor@users.noreply.github.com>`。
-按上面方式 A 改完身份后用 `--amend --reset-author` 修正。**push 之前**改最简单；如果已 push 想
-重写历史：
+## 验证发布成功
+
 ```bash
+docker pull ghcr.io/shawnzhou1993/portal-relay:latest
+docker run --rm ghcr.io/shawnzhou1993/portal-relay:latest version
+```
+
+## 常见问题
+
+**Q: push 时报 `remote: Support for password authentication was removed`**
+A: 你的 Git 版本在用账号密码而不是 GCM。执行 `git config --global credential.helper manager` 后重试 push，应该弹浏览器。
+
+**Q: 弹窗一直不出现 / 报 `could not read Username`**
+A: 手动触发一次：`git credential-manager github login`（Git Bash 里），或在 Windows「凭据管理器」里删掉旧的 github.com 条目再试。
+
+**Q: Actions 页面说 "Workflows aren't being run on this repository"**
+A: 仓库太新或没权限。到 Settings → Actions → General → 确认 "Allow all actions and reusable workflows" 已选中。main 分支的首次 push 本身就会触发一次构建（tag 是 `:main`）。
+
+**Q: 推完想改 commit 作者？**
+A: push 前改最简单。已经 push 了要重写历史：
+```bash
+git config user.name "ShawnZhou1993"
+git config user.email "ShawnZhou1993@users.noreply.github.com"
 git rebase -i --root --exec "git commit --amend --reset-author --no-edit"
 git push --force-with-lease origin main
 ```
-（GitHub 也支持改 author 但更麻烦）
+
+**Q: 以后代码更新了怎么发新版？**
+```bash
+git add -A && git commit -m "描述改了什么"
+git push
+git tag v0.1.1 && git push --tags   # 触发新镜像
+```

@@ -73,7 +73,7 @@ bumps, you `cp` the new `src/` in and rebuild.
 ## Quick start
 
 ```bash
-git clone https://github.com/<your-gh-user>/ps5-portal-high-bitrate-docker.git
+git clone https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker.git
 cd ps5-portal-high-bitrate-docker
 cp .env.example .env && vi .env   # set LAN_PARENT, SUBNET, GATEWAY, RELAY_IP, PS5_IP, PORTAL_IP
 
@@ -84,21 +84,22 @@ docker network create -d macvlan --subnet ${SUBNET} --gateway ${GATEWAY} -o pare
 docker run --rm -it --network portal-lan --ip ${RELAY_IP} \
   --sysctl net.ipv4.ip_forward=0 --cap-add NET_RAW --init --tmpfs /run \
   --env PS5_IP=... --env PORTAL_IP=... --env PROFILE=65 \
-  ps5-portal-relay:local configure-env
+  portal-relay:local configure-env
 docker run --rm -it --network portal-lan --ip ${RELAY_IP} \
   --sysctl net.ipv4.ip_forward=0 --cap-add NET_RAW --init --tmpfs /run \
-  ps5-portal-relay:local baseline   # see BASELINE READY, then connect from Portal for ~60s
+  portal-relay:local baseline   # see BASELINE READY, then connect from Portal for ~60s
 
 docker run -d --name portal-relay --network portal-lan --ip ${RELAY_IP} \
   --sysctl net.ipv4.ip_forward=0 --cap-add NET_RAW --init --tmpfs /run \
-  --restart unless-stopped ps5-portal-relay:local
+  --restart unless-stopped portal-relay:local
 ```
 
 Or, if you'd rather pull a prebuilt multi-arch image instead of building:
 
 ```bash
-docker pull ghcr.io/<your-gh-user>/ps5-portal-relay:latest
-# tag it as ps5-portal-relay:local and use the same commands above
+docker pull ghcr.io/shawnzhou1993/portal-relay:latest
+docker tag ghcr.io/shawnzhou1993/portal-relay:latest portal-relay:local
+# then use the same commands above
 ```
 
 Prebuilt images are published automatically on tag pushes (see `.github/workflows/release.yml`).
@@ -144,13 +145,13 @@ Tag a release (`git tag v0.1.0 && git push --tags`) and the
 [release workflow][.github/workflows/release.yml] will:
 
 - Build `linux/amd64` + `linux/arm64` with `docker/buildx` + QEMU
-- Push to `ghcr.io/<owner>/ps5-portal-relay:{latest, <tag>}`
+- Push to `ghcr.io/ShawnZhou1993/portal-relay:{latest, <tag>}`
 - Use build cache via `gha` for fast rebuilds
 
 To run the same build locally:
 
 ```bash
-bash scripts/buildx-multiarch.sh   # see header for required env vars
+REGISTRY=ghcr.io/ShawnZhou1993 TAG=v0.1.0 bash scripts/buildx-multiarch.sh
 ```
 
 [.github/workflows/release.yml]: .github/workflows/release.yml
