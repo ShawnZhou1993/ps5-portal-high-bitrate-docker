@@ -125,8 +125,12 @@ docker run --rm -it \
   portal-relay:local try
 ```
 
-看到 `AUTO READY` 后连接 Portal，日志出现 `Startup modified`、Portal 网络信息里
-目标码率提升即成功。**Ctrl+C** 停止（自动修复 Portal 的 ARP）。
+看到 `AUTO READY` 后连接 Portal。**之后终端不会再输出任何内容是正常的**——上游的
+成功日志只写文件、不打印终端。另开一个终端验证：
+`tail -F /opt/portal-relay/runtime/status.json`（`forwarded_out` 持续上涨、
+`unique_modified_startups` > 0 即已在修改码率），或
+`tail -f /opt/portal-relay/runtime/events.log`（实时显示 `Startup modified, profile=65`）。
+Portal 网络信息里目标码率提升即最终成功。**Ctrl+C** 停止（自动修复 Portal 的 ARP）。
 
 > 同理：若重连后没有效果，先把 Portal 完全关机再开机，然后连接（见上文说明）。
 

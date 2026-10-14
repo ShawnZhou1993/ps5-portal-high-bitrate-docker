@@ -101,8 +101,11 @@ Portal 断开与 PS5 的连接，然后：
 docker compose run --rm relay try
 ```
 
-看到 `AUTO READY` 后连接 Portal，日志出现 `Startup modified` 说明启动包已修改；
-在 Portal 的网络信息里观察目标码率是否提升。按 **Ctrl+C** 停止（会自动修复 ARP）。
+看到 `AUTO READY` 后连接 Portal。**之后终端不再输出是正常的**——上游成功日志只写
+文件、不打印终端。另开终端执行 `tail -F data/runtime/status.json`（`forwarded_out`
+上涨、`unique_modified_startups` > 0 即已修改）或 `tail -f data/runtime/events.log`
+（实时显示 `Startup modified, profile=65`）；Portal 网络信息里目标码率提升即最终成功。
+按 **Ctrl+C** 停止（会自动修复 ARP）。
 
 > 若重连后没有效果，先把 Portal 完全关机再开机，然后连接（同上）。
 

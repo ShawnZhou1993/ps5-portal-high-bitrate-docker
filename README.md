@@ -67,7 +67,10 @@ docker run --rm -it --network portal-lan --ip $RELAY_IP \
   -v "$PWD/data/runtime:/var/lib/portal-bitrate-auto" \
   portal-relay:local baseline
 
-# —— 5.（建议）前台试验：看到 AUTO READY 后连接 Portal，日志出现 Startup modified 即成功，Ctrl+C 停止 ——
+# —— 5.（建议）前台试验：看到 AUTO READY 后连接 Portal。之后终端不再输出是正常的 ——
+#        （上游成功日志只写文件、不打印终端）。另开终端验证：
+#        tail -F data/runtime/status.json   # forwarded_out 上涨、unique_modified_startups>0 即成功
+#        tail -f data/runtime/events.log    # 实时显示 Startup modified, profile=65
 docker run --rm -it --network portal-lan --ip $RELAY_IP \
   --sysctl net.ipv4.ip_forward=0 --cap-add NET_RAW --init --tmpfs /run \
   -v "$PWD/data/config:/etc/portal-bitrate" \
@@ -104,6 +107,10 @@ amd64 / arm64 镜像由 CI 同流程构建（含镜像内上游单元测试）�
 - [`docs/飞牛NAS-X86-部署.md`](docs/飞牛NAS-X86-部署.md) — 飞牛 NAS（fnOS，X86/amd64），含 GUI 步骤
 - [`docs/OpenWrt-R68S-ARM64-部署.md`](docs/OpenWrt-R68S-ARM64-部署.md) — R68S / OpenWrt 软路由（arm64），纯 `docker run`
 - [`docs/日常使用与排障.md`](docs/日常使用与排障.md) — 每次玩的流程、故障对照表、社区反馈（issue #2）处理
+
+### 让 AI 助手帮你部署
+
+本文档所有命令均可直接粘贴执行。如果卡住了，把本 README、`docs/` 下对应平台的文档，连同你的网络参数（局域网网段/网关、PS5/Portal/中继的 IP、Docker 主机的父网卡名）一起发给任何大模型（ChatGPT、Claude、各类 AI 编程助手等），即可获得针对你实际环境的下一步命令。排障时把终端的实际输出和 `data/runtime/status.json` 的内容一起发给它，效果最好。
 
 ### 目录结构
 
@@ -200,8 +207,11 @@ docker run --rm -it --network portal-lan --ip $RELAY_IP \
   -v "$PWD/data/runtime:/var/lib/portal-bitrate-auto" \
   portal-relay:local baseline
 
-# —— 5. (Recommended) Foreground trial: at AUTO READY, connect the Portal; ——
-#        "Startup modified" in the log means success; Ctrl+C to stop
+# —— 5. (Recommended) Foreground trial: at AUTO READY, connect the Portal. The ——
+#        terminal then goes quiet (normal — upstream success logs only go to files).
+#        Verify from another terminal:
+#        tail -F data/runtime/status.json   # rising forwarded_out, unique_modified_startups>0 = working
+#        tail -f data/runtime/events.log    # live: Startup modified, profile=65
 docker run --rm -it --network portal-lan --ip $RELAY_IP \
   --sysctl net.ipv4.ip_forward=0 --cap-add NET_RAW --init --tmpfs /run \
   -v "$PWD/data/config:/etc/portal-bitrate" \
@@ -240,6 +250,10 @@ Chinese deployment & troubleshooting guides (the `docker run` commands are platf
 - [`docs/飞牛NAS-X86-部署.md`](docs/飞牛NAS-X86-部署.md) — fnOS NAS (X86/amd64) with GUI steps
 - [`docs/OpenWrt-R68S-ARM64-部署.md`](docs/OpenWrt-R68S-ARM64-部署.md) — R68S / OpenWrt router (arm64), plain `docker run`
 - [`docs/日常使用与排障.md`](docs/日常使用与排障.md) — play-session workflow, troubleshooting table, community findings (issue #2)
+
+### Deploy with an AI assistant
+
+Every command in this README is copy-paste ready. If you get stuck, feed this README plus the platform guide under `docs/` and your network parameters (subnet/gateway, PS5/Portal/relay IPs, parent NIC on the Docker host) to any LLM (ChatGPT, Claude, AI coding assistants, ...) and it will produce the next commands for your specific setup. For troubleshooting, include the actual terminal output and the contents of `data/runtime/status.json` for the best results.
 
 ### Directory layout
 
