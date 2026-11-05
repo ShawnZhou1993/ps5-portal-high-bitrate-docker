@@ -12,8 +12,8 @@
 
 本仓库**只做 Docker 层**：上游 Python 代码以 `src/` 形式原样打包（commit `97880a2e`，一字未改，基线指纹保持有效），外加 Dockerfile、非交互 `configure-env` 入口、多架构 CI 和中文文档。上游更新时直接替换 `src/` 重新构建即可。
 
-> ⚠️ **实验性声明**：这不是越狱、不是 4K 解锁、不保证降低延迟。仅在 Portal 固件 **7.1.7** 上验证过。
-> 工具只把 Portal→PS5 握手包里的"目标码率"字段从 `25000` 改成 `65000`/`100000`/`200000`，不改分辨率；
+> ⚠️ **实验性声明**：这不是越狱、不是 4K 解锁、不保证降低延迟。仅在 Portal 固件 **7.1.7** 上验证过。  
+> 工具只把 Portal→PS5 握手包里的"目标码率"字段从 `25000` 改成 `65000`/`100000`/`200000`，不改分辨率；  
 > 视频流仍然走 PS5→Portal 直连，不经过本容器。
 
 ### 工作原理（30 秒）
@@ -88,17 +88,19 @@ docker run -d --name portal-relay --network portal-lan --ip $RELAY_IP \
 
 > **停止必须优雅**：用 `docker stop -t 60 portal-relay`（或 compose `down`）。`docker rm -f` 强杀会让 Portal 的 ARP 指向失效 MAC，几分钟连不上 PS5。
 >
+> **路由器整机重启**后容器可能进入 `Restarting` 循环（上游异常退出联锁）：2026-11 起的镜像已内置自动恢复，等 1-2 轮自愈即可，详见排障文档。
+>
 > **Portal 重连无效时**：长按电源键完全关机、等十几秒再开机（社区反馈：Remote Play 里断开重连不够，ARP 缓存顽固）。
 
 有 docker compose 的环境也可以走 `.env` 流程：`cp .env.example .env` 改好参数后 `docker compose run --rm relay configure-env` → `baseline` → `try` → `up -d`。
 
 ### 平台与验证状态
 
-| 平台 | 状态 |
-|---|---|
-| OpenWrt 软路由（R68S / arm64） | ✅ 全流程实机验证（注册 → 基线 → 65 档常驻） |
-| 飞牛 NAS 等 X86/amd64 主机 | 🔶 镜像构建 + 镜像内单测已验证；运行时待实机确认 |
-| 任何有 Docker 的 Linux | 🔶 同上；需内核支持 macvlan（主流发行版均内置） |
+| 平台                        | 状态                            |
+| ------------------------- | ----------------------------- |
+| OpenWrt 软路由（R68S / arm64） | ✅ 全流程实机验证（注册 → 基线 → 65 档常驻）   |
+| 飞牛 NAS 等 X86/amd64 主机     | 🔶 镜像构建 + 镜像内单测已验证；运行时待实机确认   |
+| 任何有 Docker 的 Linux        | 🔶 同上；需内核支持 macvlan（主流发行版均内置） |
 
 amd64 / arm64 镜像由 CI 同流程构建（含镜像内上游单元测试）；macvlan、NET_RAW、ip_forward 均为 Linux 内核能力，与 CPU 架构无关。目前完整的运行时验证记录在 arm64 平台。
 
@@ -107,10 +109,6 @@ amd64 / arm64 镜像由 CI 同流程构建（含镜像内上游单元测试）�
 - [`docs/飞牛NAS-X86-部署.md`](docs/飞牛NAS-X86-部署.md) — 飞牛 NAS（fnOS，X86/amd64），含 GUI 步骤
 - [`docs/OpenWrt-R68S-ARM64-部署.md`](docs/OpenWrt-R68S-ARM64-部署.md) — R68S / OpenWrt 软路由（arm64），纯 `docker run`
 - [`docs/日常使用与排障.md`](docs/日常使用与排障.md) — 每次玩的流程、故障对照表、社区反馈（issue #2）处理
-
-### 让 AI 助手帮你部署
-
-本文档所有命令均可直接粘贴执行。如果卡住了，把本 README、`docs/` 下对应平台的文档，连同你的网络参数（局域网网段/网关、PS5/Portal/中继的 IP、Docker 主机的父网卡名）一起发给任何大模型（ChatGPT、Claude、各类 AI 编程助手等），即可获得针对你实际环境的下一步命令。排障时把终端的实际输出和 `data/runtime/status.json` 的内容一起发给它，效果最好。
 
 ### 目录结构
 
@@ -153,7 +151,7 @@ A **Docker packaging layer** around [@atameric](https://github.com/atameric)'s e
 
 This repo only adds the Docker layer: the upstream Python code is bundled **unmodified** under `src/` (commit `97880a2e`, baseline fingerprint stays valid), plus a Dockerfile, a non-interactive `configure-env` entry point, multi-arch CI, and Chinese docs. When upstream bumps, `cp` the new `src/` in and rebuild.
 
-> ⚠️ **Experimental disclaimer**: this is **not** jailbreak, **not** 4K unlock, **not** latency reduction. Only verified on Portal firmware **7.1.7**.
+> ⚠️ **Experimental disclaimer**: this is **not** jailbreak, **not** 4K unlock, **not** latency reduction. Only verified on Portal firmware **7.1.7**.  
 > The tool XORs the `target bitrate` field inside the Portal→PS5 handshake packet (`25000` → `65000` / `100000` / `200000`). It does **not** touch resolution; the video stream still goes PS5→Portal **directly**.
 
 ### How it works (30 seconds)
@@ -227,7 +225,10 @@ docker run -d --name portal-relay --network portal-lan --ip $RELAY_IP \
   portal-relay:local
 ```
 
+
 > **Always stop gracefully**: use `docker stop -t 60 portal-relay` (or compose `down`). `docker rm -f` leaves the Portal's ARP pointing at a dead MAC — the PS5 becomes unreachable from the Portal for minutes.
+>
+> **After a full router reboot** the container may enter a `Restarting` loop (upstream abnormal-exit interlock). Images built since 2026-11 include automatic recovery — it self-heals within 1-2 restart rounds. See the troubleshooting doc.
 >
 > **If reconnecting the Portal doesn't work**: fully power it off (hold the power button), wait ~15 seconds, power on again — community reports that disconnecting inside Remote Play is not enough (stubborn ARP cache).
 
@@ -235,11 +236,11 @@ With docker compose available, you can also use the `.env` flow: `cp .env.exampl
 
 ### Platform & verification status
 
-| Platform | Status |
-|---|---|
-| OpenWrt router (R68S / arm64) | ✅ Full runtime verified (enroll → baseline → 65 profile resident) |
-| fnOS NAS and other X86/amd64 hosts | 🔶 Build + in-image unit tests verified; runtime pending field test |
-| Any Linux host with Docker | 🔶 Same as above; requires kernel macvlan support (built into mainstream distros) |
+| Platform                           | Status                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| OpenWrt router (R68S / arm64)      | ✅ Full runtime verified (enroll → baseline → 65 profile resident)                 |
+| fnOS NAS and other X86/amd64 hosts | 🔶 Build + in-image unit tests verified; runtime pending field test               |
+| Any Linux host with Docker         | 🔶 Same as above; requires kernel macvlan support (built into mainstream distros) |
 
 Both amd64 and arm64 images are built by the same CI pipeline (including the in-image upstream unit tests); macvlan, NET_RAW and ip_forward are kernel capabilities independent of CPU architecture. Full runtime verification records so far are on arm64.
 
@@ -250,10 +251,6 @@ Chinese deployment & troubleshooting guides (the `docker run` commands are platf
 - [`docs/飞牛NAS-X86-部署.md`](docs/飞牛NAS-X86-部署.md) — fnOS NAS (X86/amd64) with GUI steps
 - [`docs/OpenWrt-R68S-ARM64-部署.md`](docs/OpenWrt-R68S-ARM64-部署.md) — R68S / OpenWrt router (arm64), plain `docker run`
 - [`docs/日常使用与排障.md`](docs/日常使用与排障.md) — play-session workflow, troubleshooting table, community findings (issue #2)
-
-### Deploy with an AI assistant
-
-Every command in this README is copy-paste ready. If you get stuck, feed this README plus the platform guide under `docs/` and your network parameters (subnet/gateway, PS5/Portal/relay IPs, parent NIC on the Docker host) to any LLM (ChatGPT, Claude, AI coding assistants, ...) and it will produce the next commands for your specific setup. For troubleshooting, include the actual terminal output and the contents of `data/runtime/status.json` for the best results.
 
 ### Directory layout
 
@@ -281,7 +278,7 @@ Push a tag to publish: `git tag v0.1.0 && git push --tags`. The [release workflo
 
 ### Acknowledgements & License
 
-- All credit for the underlying technique goes to **[@atameric](https://github.com/atameric) — please star [the upstream repo](https://github.com/atameric/ps5-portal-high-bitrate).
+- All credit for the underlying technique goes to \*\*[@atameric](https://github.com/atameric) — please star [the upstream repo](https://github.com/atameric/ps5-portal-high-bitrate).
 - Real-world deployment experience shared in [upstream issue #2](https://github.com/atameric/ps5-portal-high-bitrate/issues/2) (stubborn Portal ARP cache, br_netfilter interaction, etc.) shaped this repo's troubleshooting guide.
 
 [MIT](LICENSE). `src/` contains upstream code (also MIT); the upstream Python files are bundled **unmodified**, and all changes in this repo are limited to packaging (Dockerfile / scripts / docs).

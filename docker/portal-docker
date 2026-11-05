@@ -5,11 +5,41 @@
 set -eu
 
 APP=${PORTAL_APP:-/opt/portal-bitrate-auto}
+RT=${PORTAL_RUNTIME:-/var/lib/portal-bitrate-auto}
+
+# 自动解除“异常退出联锁”：
+# 中继运行时会在 $RT/recovery-required 留下标记（ARP 重定向生效中，未修复不许再启动）。
+# 优雅停止时 guardian 会发修复包并清除标记；但路由器整机重启是 SIGKILL/SIGTERM 全杀，
+# 网络栈关闭途中修复包发不出去 → 标记残留在持久化目录 → 重启后 --restart unless-stopped
+# 拉起容器，上游 run()/check() 见到标记直接拒绝启动 → Docker 无限重启。
+# 上游的 repair 是交互式的（要输入 STOPPED），无人值守场景不可用；这里用与上游
+# portal 脚本优雅停止时完全相同的非交互路径（printf 'STOPPED\n' | ... repair）提前修复。
+auto_recover() {
+	[ -e "$RT/recovery-required" ] || return 0
+	echo "portal-docker: 检测到上次异常退出残留的 ARP 修复联锁，自动恢复中"
+	if [ ! -f "$RT/restore-state.json" ]; then
+		echo "portal-docker: 错误：$RT/restore-state.json 不存在，Portal 的 ARP 状态未知。" >&2
+		echo "portal-docker: 请长按电源完全重启 Portal，然后删除 $RT/recovery-required 再启动。" >&2
+		exit 1
+	fi
+	if pgrep -f 'portal_auto.py guardian' >/dev/null 2>&1; then
+		echo "portal-docker: 仍有 guardian 在运行，本轮跳过自动恢复" >&2
+		exit 1
+	fi
+	if ! printf 'STOPPED\n' | "$APP/.venv/bin/python" "$APP/portal_auto.py" repair --runtime "$RT"; then
+		echo "portal-docker: 自动恢复失败（网络未就绪？），将在下次容器启动时重试" >&2
+		exit 1
+	fi
+	echo "portal-docker: Portal ARP 已修复，联锁已解除，继续启动"
+}
 
 case "${1:-}" in
 	configure-env)
 		shift
 		exec "$APP/.venv/bin/python" "$APP/docker_configure.py" "$@"
+		;;
+	service|run|baseline|try)
+		auto_recover
 		;;
 esac
 

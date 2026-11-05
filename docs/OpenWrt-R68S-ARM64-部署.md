@@ -153,6 +153,14 @@ docker logs -f portal-relay
 开机自启：`restart: unless-stopped` + `/etc/init.d/dockerd enable` 已设置，
 路由器重启后自动恢复。
 
+> **路由器整机重启后容器不断重启（Restarting 循环）？**
+> 这是上游的异常退出联锁（`recovery-required` 标记）：整机重启时进程全被杀，
+> 修复 Portal ARP 的包来不及发，标记残留在 `/opt/portal-relay/runtime/`，
+> 容器再启动时被上游拒绝 → 退出 → 重启 → 循环。
+> **2026-11 起的镜像已内置自动恢复**（入口脚本在启动前自动完成修复并清除标记），
+> 等 1-2 轮容器自愈即可；旧镜像的手动处理见《日常使用与排障.md》同名章节。
+> 若日志提示 `restore-state.json 不存在`，长按电源完全重启 Portal 后再启动。
+
 ## 9. 停止/切换档位（重要）
 
 **停止务必用优雅停止**（给守护进程留出修复 Portal ARP 的时间，至少 60 秒）：
