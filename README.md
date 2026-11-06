@@ -94,6 +94,21 @@ docker run -d --name portal-relay --network portal-lan --ip $RELAY_IP \
 
 有 docker compose 的环境也可以走 `.env` 流程：`cp .env.example .env` 改好参数后 `docker compose run --rm relay configure-env` → `baseline` → `try` → `up -d`。
 
+### 版本与升级
+
+当前版本 **v0.1.1**（[更新日志](https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker/releases)）。`:latest` 永远指向最新的正式 tag，`:main` 跟随 main 分支最新提交（可能是未发布的中间状态，不建议长期使用）。
+
+已部署过旧版本的升级步骤（**不要**在容器运行时直接覆盖镜像）：
+
+```bash
+docker pull ghcr.io/shawnzhou1993/portal-relay:latest
+docker tag  ghcr.io/shawnzhou1993/portal-relay:latest portal-relay:local
+docker stop -t 60 portal-relay          # 必须先优雅停止，让容器修复 Portal 的 ARP
+# 用原来那串 docker run 参数重建容器（参数可从 docker inspect portal-relay 抄回）
+```
+
+> 本版本的改动只在入口包装脚本，上游 5 个 Python 文件字节未变（上游基线回执 `auto-baseline.json` 的指纹由「配置 + 这 5 个文件」算出），因此**注册信息和基线回执继续有效**，重建后直接 `service` 常驻即可。只有替换 `src/` 里的上游代码、换码率档位、或 PS5/Portal 换了 IP 时，才需要重跑 `configure-env` + `baseline`（60 秒）。
+
 ### 平台与验证状态
 
 | 平台                        | 状态                            |
@@ -132,7 +147,9 @@ amd64 / arm64 镜像由 CI 同流程构建（含镜像内上游单元测试）�
 
 ### 多架构 CI
 
-推 tag 即自动发布：`git tag v0.1.0 && git push --tags`，[release workflow](.github/workflows/release.yml) 会用 QEMU + buildx 构建 `linux/amd64` + `linux/arm64` 并推送到 `ghcr.io/shawnzhou1993/portal-relay`（标签：`v0.1.0` / `0.1.0` / `0.1` / `0` / `latest`）。本地手动多架构构建：`REGISTRY=ghcr.io/ShawnZhou1993 TAG=v0.1.0 bash scripts/buildx-multiarch.sh`。
+推 tag 即自动发布：`git tag v0.1.1 && git push origin v0.1.1`，[release workflow](.github/workflows/release.yml) 会用 QEMU + buildx 构建 `linux/amd64` + `linux/arm64` 并推送到 `ghcr.io/shawnzhou1993/portal-relay`（每个正式 tag 自动派生 `0.1.1` / `0.1` / `0` / `latest`）。本地手动多架构构建：`REGISTRY=ghcr.io/ShawnZhou1993 TAG=v0.1.1 bash scripts/buildx-multiarch.sh`。
+
+> 注意：推 main 分支只会更新 `:main`，**不会**移动 `:latest`——发布正式版本必须打 `v*` tag，否则用户拉到 `:latest` 还是旧镜像。
 
 ### 致谢与 License
 
@@ -234,6 +251,21 @@ docker run -d --name portal-relay --network portal-lan --ip $RELAY_IP \
 
 With docker compose available, you can also use the `.env` flow: `cp .env.example .env`, edit the values, then `docker compose run --rm relay configure-env` → `baseline` → `try` → `up -d`.
 
+### Version & upgrade
+
+Current version: **v0.1.1** ([changelog](https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker/releases)). `:latest` always points to the newest release tag; `:main` follows the tip of main (may be unreleased work in progress — don't pin to it).
+
+Upgrading an existing deployment (do **not** overwrite the image while the container is running):
+
+```bash
+docker pull ghcr.io/shawnzhou1993/portal-relay:latest
+docker tag  ghcr.io/shawnzhou1993/portal-relay:latest portal-relay:local
+docker stop -t 60 portal-relay          # graceful stop: lets the container restore the Portal ARP entry
+# recreate the container with the exact same docker run arguments (copy them from docker inspect portal-relay)
+```
+
+> This release only changes the entrypoint wrapper; the five upstream Python files are byte-identical, and the baseline receipt fingerprint is derived from "config + those five files" — so **your enrollment and baseline receipt stay valid**. Just recreate with `service`. You only need to re-run `configure-env` + `baseline` (60 s) when you replace upstream code in `src/`, change the profile, or change the PS5/Portal IPs.
+
 ### Platform & verification status
 
 | Platform                           | Status                                                                            |
@@ -274,7 +306,9 @@ Chinese deployment & troubleshooting guides (the `docker run` commands are platf
 
 ### Multi-arch CI
 
-Push a tag to publish: `git tag v0.1.0 && git push --tags`. The [release workflow](.github/workflows/release.yml) builds `linux/amd64` + `linux/arm64` with QEMU + buildx and pushes to `ghcr.io/shawnzhou1993/portal-relay` (tags: `v0.1.0` / `0.1.0` / `0.1` / `0` / `latest`). Local multi-arch build: `REGISTRY=ghcr.io/ShawnZhou1993 TAG=v0.1.0 bash scripts/buildx-multiarch.sh`.
+Push a tag to publish: `git tag v0.1.1 && git push origin v0.1.1`. The [release workflow](.github/workflows/release.yml) builds `linux/amd64` + `linux/arm64` with QEMU + buildx and pushes to `ghcr.io/shawnzhou1993/portal-relay` (each release tag derives `0.1.1` / `0.1` / `0` / `latest`). Local multi-arch build: `REGISTRY=ghcr.io/ShawnZhou1993 TAG=v0.1.1 bash scripts/buildx-multiarch.sh`.
+
+> Note: pushing to main only updates `:main` — it does **not** move `:latest`. To publish a real release you must push a `v*` tag, otherwise users pulling `:latest` keep getting the old image.
 
 ### Acknowledgements & License
 

@@ -41,14 +41,16 @@ git push -u origin main
 ## 第 4 步：打标签发版（触发多架构镜像构建）
 
 ```bash
-git tag v0.1.0
-git push --tags
+git tag v0.1.1          # 版本号自己定，必须是 v 开头才会触发发版
+git push origin v0.1.1
 ```
 
 然后打开 https://github.com/ShawnZhou1993/ps5-portal-high-bitrate-docker/actions
 能看到 "Release multi-arch image" 工作流开始跑（amd64+arm64 约 5-10 分钟，QEMU 模拟 arm64 编译较慢是正常的）。
 
-绿勾 ✅ 后镜像就在 `ghcr.io/shawnzhou1993/portal-relay:v0.1.0`（同时打 `:0.1.0` `:0.1` `:0` `:latest`）。
+绿勾 ✅ 后镜像就是 `ghcr.io/shawnzhou1993/portal-relay:0.1.1`（同时自动打 `:0.1` `:0` `:latest`；`v0.1.1` 是 git tag，不是镜像 tag）。
+
+> ⚠️ 推 main 分支只会更新 `:main`，**不会**移动 `:latest`。所以每次发新版本都必须打 tag，否则别人 `docker pull ...:latest` 拿到的还是旧镜像。
 
 **默认发布出来的镜像是 private**。想让别人也能 `docker pull`：
 1. 打开 https://github.com/users/ShawnZhou1993/packages/container/portal-relay/settings
